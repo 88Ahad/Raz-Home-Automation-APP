@@ -24,15 +24,15 @@ import {
 
 // ─────────────────────────────────────────────────────────
 //  ★ Firebase Config — আপনার Project এর তথ্য দিন
-// ─────────────────────────────────────────────────────────
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL:       "https://YOUR_PROJECT_ID-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT_ID.firebasestorage.app",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId:             "YOUR_APP_ID"
+  apiKey: "AIzaSyDCyrsDBST8kK7vbFh-1N3bDeSx8nlKx7w",
+  authDomain: "raz-home-automation-app-2014f.firebaseapp.com",
+  databaseURL: "https://raz-home-automation-app-2014f-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "raz-home-automation-app-2014f",
+  storageBucket: "raz-home-automation-app-2014f.firebasestorage.app",
+  messagingSenderId: "457820621537",
+  appId: "1:457820621537:web:0d3f253eff2593d2b405a0"
 };
 
 // ─────────────────────────────────────────────────────────
