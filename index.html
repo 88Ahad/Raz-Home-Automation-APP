@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ESP32 রিলে কন্ট্রোলার v8.1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     লগইন স্ক্রিন
+════════════════════════════════════════════════════════ -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <span class="login-logo">⚡</span>
+    <h1 class="login-title">ESP32 রিলে কন্ট্রোলার</h1>
+    <p class="login-sub">v8.1 &nbsp;|&nbsp; 14 রিলে · ভোল্টেজ অটো · WiFi↔AP</p>
+
+    <div class="input-group">
+      <label>📧 ইমেইল</label>
+      <input id="emailField" type="email" placeholder="your@email.com" autocomplete="email">
+    </div>
+    <div class="input-group">
+      <label>🔑 পাসওয়ার্ড</label>
+      <input id="passField" type="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button id="loginBtn" class="login-btn">প্রবেশ করুন</button>
+    <p id="authMsg" class="auth-msg"></p>
+
+    <div class="login-info">
+      <p>🔒 Firebase Authentication দ্বারা সুরক্ষিত</p>
+      <p>📡 Realtime Database — যেকোনো জায়গা থেকে এক্সেস</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     মেইন ড্যাশবোর্ড
+════════════════════════════════════════════════════════ -->
+<div id="dashboard" style="display:none">
+
+  <!-- হেডার -->
+  <header class="header">
+    <div class="header-left">
+      <div class="header-logo">⚡</div>
+      <div>
+        <div class="header-title">ESP32 রিলে কন্ট্রোলার</div>
+        <div class="header-sub">v8.1 &nbsp;|&nbsp; 14 রিলে + ভোল্টেজ অটো + WiFi↔AP</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <!-- Firebase সংযোগ badge -->
+      <div id="fbBadge" class="badge badge-offline">⚫ Firebase</div>
+      <!-- ESP32 Online/Offline + WiFi/AP badge -->
+      <div id="esp32Badge" class="badge badge-esp-offline">🔴 ESP32 অফলাইন</div>
+      <button class="logout-btn" id="logoutBtn">🚪 লগআউট</button>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- অ্যালার্ম ব্যানার -->
+    <div id="alarmBanner" class="alarm-banner" style="display:none"></div>
+
+    <!-- স্ট্যাট কার্ড -->
+    <div class="stats-grid">
+      <div class="stat-card volt-card">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-value volt-val" id="voltVal">—.—V</div>
+        <div class="stat-label">ব্যাটারি ভোল্টেজ</div>
+        <div class="stat-badge badge-warn" id="voltBadge">লোড হচ্ছে...</div>
+      </div>
+      <div class="stat-card temp-card">
+        <div class="stat-icon">🌡️</div>
+        <div class="stat-value temp-val" id="tempVal">——°C</div>
+        <div class="stat-label">তাপমাত্রা</div>
+        <div class="stat-badge badge-ok" id="tempBadge">স্বাভাবিক</div>
+      </div>
+      <div class="stat-card relay-card">
+        <div class="stat-icon">🔌</div>
+        <div class="stat-value relay-val" id="relayCount">0 / 14</div>
+        <div class="stat-label">সক্রিয় রিলে</div>
+        <div class="stat-badge badge-ok">সব ঠিক</div>
+      </div>
+      <div class="stat-card sys-card">
+        <div class="stat-icon">🖥️</div>
+        <div class="stat-value sys-val" id="uptimeVal">0m</div>
+        <div class="stat-label">আপটাইম</div>
+        <div class="stat-badge badge-ok" id="heapBadge">RAM: ——KB</div>
+      </div>
+    </div>
+
+    <!-- ট্যাব নেভিগেশন -->
+    <div class="tabs">
+      <button class="tab active" data-tab="manual">🎛️ ম্যানুয়াল রিলে</button>
+      <button class="tab" data-tab="auto">⚙️ অটো রিলে</button>
+      <button class="tab" data-tab="wifi">📶 WiFi</button>
+      <button class="tab" data-tab="settings">🔧 সেটিংস</button>
+      <button class="tab" data-tab="system">📊 সিস্টেম</button>
+    </div>
+
+    <!-- ম্যানুয়াল রিলে ট্যাব -->
+    <div id="tab-manual" class="tab-content active">
+      <div class="card">
+        <div class="card-header"><span>🎛️ ম্যানুয়াল রিলে কন্ট্রোল (10টি)</span></div>
+        <div class="relay-grid" id="manualGrid"></div>
+      </div>
+    </div>
+
+    <!-- অটো রিলে ট্যাব -->
+    <div id="tab-auto" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <span>⚙️ অটো রিলে স্ট্যাটাস (4টি)</span>
+          <span class="card-sub">🔋 শুধুমাত্র ভোল্টেজ দ্বারা নিয়ন্ত্রিত</span>
+        </div>
+        <div class="relay-grid" id="autoGrid"></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-header">
+          <span>⚙️ অটো রিলে কনফিগারেশন</span>
+          <span class="card-sub">ভোল্টেজ শর্ত ও ডিলে টাইম সেট করুন</span>
+        </div>
+        <div id="autoConfigs"></div>
+      </div>
+    </div>
+
+    <!-- WiFi ট্যাব -->
+    <div id="tab-wifi" class="tab-content">
+      <div class="card">
+        <div class="card-header"><span>📡 বর্তমান সংযোগ</span></div>
+        <div class="sys-info-grid">
+          <div class="info-item"><span class="info-label">মোড</span><span class="info-val" id="wf-mode">—</span></div>
+          <div class="info-item"><span class="info-label">IP ঠিকানা</span><span class="info-val" id="wf-ip">—</span></div>
+          <div class="info-item"><span class="info-label">নেটওয়ার্ক</span><span class="info-val" id="wf-ssid">—</span></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-header">
+          <span>💾 সেভ করা নেটওয়ার্ক</span>
+          <span class="card-sub">সর্বোচ্চ ৫টি · অটো কানেক্ট</span>
+        </div>
+        <div id="savedList"><div class="scan-loading">লোড হচ্ছে...</div></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-header">
+          <span>🔍 নেটওয়ার্ক স্ক্যানার</span>
+          <span class="card-sub">কাছের সব WiFi দেখুন · সরাসরি ESP32 থেকে</span>
+        </div>
+        <button id="scanBtn" class="scan-btn">🔍 স্ক্যান করুন</button>
+        <div id="scanList" style="margin-top:14px"></div>
+      </div>
+    </div>
+
+    <!-- সেটিংস ট্যাব -->
+    <div id="tab-settings" class="tab-content">
+      <div class="card">
+        <div class="card-header"><span>⚡ ভোল্টেজ থ্রেশহোল্ড</span></div>
+        <p class="card-desc">হাই মোড: ভোল্টেজ ≥ হাই থ্রেশহোল্ড | লো মোড: ভোল্টেজ &lt; হাই থ্রেশহোল্ড</p>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>🔋 হাই ভোল্টেজ থ্রেশহোল্ড (V)</label>
+            <input type="number" id="hiV" step="0.1" value="12.2">
+          </div>
+          <div class="form-group">
+            <label>🪫 লো ভোল্টেজ থ্রেশহোল্ড (V)</label>
+            <input type="number" id="loV" step="0.1" value="11.8">
+          </div>
+        </div>
+        <div style="margin-top:14px;display:flex;align-items:center;gap:12px">
+          <button class="save-btn" id="saveVoltBtn">💾 সেভ করুন</button>
+          <span id="voltMsg" class="save-msg" style="display:none">✅ সেভ হয়েছে</span>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-header"><span>🌡️ তাপমাত্রা অ্যালার্ম সীমা</span></div>
+        <p class="card-desc">তাপমাত্রা এই সীমা অতিক্রম করলে উপরে অ্যালার্ম দেখাবে। রিলে নিয়ন্ত্রণে ব্যবহার হবে না।</p>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>🔴 উচ্চ তাপমাত্রা অ্যালার্ম (°C)</label>
+            <input type="number" id="tmpHi" step="0.5" value="45">
+          </div>
+          <div class="form-group">
+            <label>🔵 নিম্ন তাপমাত্রা অ্যালার্ম (°C)</label>
+            <input type="number" id="tmpLo" step="0.5" value="5">
+          </div>
+        </div>
+        <div style="margin-top:14px;display:flex;align-items:center;gap:12px">
+          <button class="save-btn" id="saveTempBtn">💾 সেভ করুন</button>
+          <span id="tempMsg" class="save-msg" style="display:none">✅ সেভ হয়েছে</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- সিস্টেম ট্যাব -->
+    <div id="tab-system" class="tab-content">
+      <div class="card">
+        <div class="card-header"><span>🖥️ ESP32 স্ট্যাটাস</span></div>
+        <div class="sys-info-grid">
+          <div class="info-item"><span class="info-label">📡 ESP32 অবস্থা</span><span class="info-val" id="si-status">—</span></div>
+          <div class="info-item"><span class="info-label">🌐 নেটওয়ার্ক মোড</span><span class="info-val" id="si-mode">—</span></div>
+          <div class="info-item"><span class="info-label">🌐 IP ঠিকানা</span><span class="info-val" id="si-ip">—</span></div>
+          <div class="info-item"><span class="info-label">📶 নেটওয়ার্ক</span><span class="info-val" id="si-ssid">—</span></div>
+          <div class="info-item"><span class="info-label">💾 ফ্রি RAM</span><span class="info-val" id="si-heap">—</span></div>
+          <div class="info-item"><span class="info-label">⏱️ আপটাইম</span><span class="info-val" id="si-uptime">—</span></div>
+          <div class="info-item"><span class="info-label">⚡ ভোল্টেজ মোড</span><span class="info-val" id="si-vmode">—</span></div>
+          <div class="info-item"><span class="info-label">🔌 সক্রিয় রিলে</span><span class="info-val" id="si-active">—</span></div>
+          <div class="info-item"><span class="info-label">🔥 Firebase</span><span class="info-val" id="si-fb">—</span></div>
+          <div class="info-item"><span class="info-label">👤 লগইন ইউজার</span><span class="info-val" id="si-user">—</span></div>
+          <div class="info-item"><span class="info-label">🔄 শেষ আপডেট</span><span class="info-val" id="si-lastupdate">—</span></div>
+          <div class="info-item"><span class="info-label">📅 ফার্মওয়্যার</span><span class="info-val">v8.1 Firebase</span></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-header"><span>📡 WiFi ↔ AP অটো সুইচিং</span></div>
+        <div class="info-box-desc">
+          <p>✅ <strong>WiFi পেলে:</strong> স্বয়ংক্রিয়ভাবে WiFi-এ সংযুক্ত হয় এবং AP বন্ধ করে।</p>
+          <p>📡 <strong>WiFi না পেলে:</strong> AP মোড চালু হয় — SSID: <code>ESP32-Relay-AP</code> | Pass: <code>12345678</code></p>
+          <p>🔄 <strong>AP মোডে:</strong> প্রতি ৩০ সেকেন্ডে WiFi পুনঃসংযোগের চেষ্টা করে।</p>
+          <p>💾 <strong>সেভ নেটওয়ার্ক:</strong> সর্বোচ্চ ৫টি নেটওয়ার্ক সেভ — বুটে অটো কানেক্ট।</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /container -->
+</div><!-- /dashboard -->
+
+<!-- Connect Modal -->
+<div id="connectPanel" class="connect-panel" style="display:none">
+  <div class="connect-panel-inner">
+    <div class="connect-panel-title">🔗 সংযোগ করুন</div>
+    <div class="connect-ssid-display" id="conn-ssid-lbl">—</div>
+    <input type="hidden" id="conn-ssid">
+    <div id="conn-pass-group" class="form-group" style="margin-top:14px">
+      <label>🔑 পাসওয়ার্ড</label>
+      <input type="password" id="conn-pass" placeholder="WiFi পাসওয়ার্ড">
+    </div>
+    <div class="connect-panel-btns">
+      <button class="save-btn" id="connBtn" style="flex:1">✅ সংযোগ করুন</button>
+      <button class="cancel-btn" id="cancelConnBtn">✕ বাতিল</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
